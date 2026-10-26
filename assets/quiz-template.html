@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vocab Quiz</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --accent:#06b6d4;--accent2:#3b82f6;--accent3:#8b5cf6;
+  --good:#10b981;--bad:#ef4444;--warn:#f59e0b;
+  --text:#1e293b;--text2:#64748b;--text-light:#f1f5f9;
+  --radius:18px;--card-bg:rgba(255,255,255,0.88);
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+body{
+  background:linear-gradient(135deg,#0ea5e9 0%,#6366f1 50%,#8b5cf6 100%);
+  background-attachment:fixed;
+  position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 15% 20%,rgba(255,255,255,0.12) 0%,transparent 40%),
+    radial-gradient(circle at 85% 80%,rgba(255,255,255,0.08) 0%,transparent 35%),
+    radial-gradient(circle at 50% 50%,rgba(139,92,246,0.15) 0%,transparent 50%);
+}
+#app{height:100%;display:flex;flex-direction:column;position:relative;z-index:1}
+.screen{display:none;flex:1;flex-direction:column;overflow-y:auto;padding:24px 20px;animation:fadeIn .35s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+.glass{
+  background:var(--card-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:var(--radius);border:1px solid rgba(255,255,255,0.6);
+  box-shadow:0 8px 32px rgba(15,23,42,0.12),0 2px 8px rgba(15,23,42,0.06);
+}
+h1{font-size:30px;font-weight:800;margin-bottom:6px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.2);letter-spacing:-0.5px}
+h2{font-size:21px;font-weight:700;margin-bottom:16px;color:var(--text)}
+.subtitle{color:var(--text2);font-size:14px;margin-bottom:24px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 24px;border:none;border-radius:14px;font-size:16px;font-weight:600;
+  cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;width:100%;box-shadow:0 4px 16px rgba(6,182,212,0.35);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(6,182,212,0.45)}
+.btn:active{transform:scale(0.97)}
+.btn-ghost{background:rgba(255,255,255,0.7);border:1.5px solid rgba(6,182,212,0.3);color:var(--accent);box-shadow:none;backdrop-filter:blur(10px)}
+.btn-ghost:hover{background:rgba(255,255,255,0.9);border-color:var(--accent);box-shadow:0 4px 16px rgba(6,182,212,0.15)}
+.btn-sm{padding:10px 18px;font-size:14px;width:auto}
+.user-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.1)}
+.user-info{display:flex;align-items:center;gap:10px;cursor:pointer}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;box-shadow:0 2px 8px rgba(6,182,212,0.3)}
+.user-name{font-size:14px;font-weight:600;color:var(--text-light)}
+.user-stats{font-size:12px;color:rgba(241,245,249,0.7)}
+.lesson-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;margin-bottom:10px;border-radius:14px;
+  background:var(--card-bg);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.5);
+  cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 2px 12px rgba(15,23,42,0.06);
+}
+.lesson-item:hover{transform:translateX(4px);box-shadow:0 6px 20px rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3)}
+.lesson-item .name{font-size:16px;font-weight:600;color:var(--text)}
+.lesson-item .meta{font-size:12px;color:var(--text2);margin-top:2px}
+.lesson-item .score{font-size:13px;color:var(--accent);font-weight:600;background:rgba(6,182,212,0.1);padding:4px 12px;border-radius:20px}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.1)}
+.progress-bar{flex:1;height:8px;background:rgba(255,255,255,0.2);border-radius:4px;margin:0 16px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:4px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.timer{font-size:24px;font-weight:800;min-width:52px;text-align:center;font-variant-numeric:tabular-nums;color:var(--text-light);background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:12px}
+.timer.warn{color:#fecaca;background:rgba(239,68,68,0.25);animation:pulse .5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.score-display{font-size:14px;color:rgba(241,245,249,0.85)}
+.score-display b{color:#fff;font-size:18px;font-weight:700}
+.quiz-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.word-display{font-size:40px;font-weight:800;margin-bottom:6px;cursor:pointer;transition:transform .15s;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.15);letter-spacing:-0.5px}
+.word-display:active{transform:scale(0.95)}
+.phonetic{font-size:17px;color:rgba(241,245,249,0.75);margin-bottom:14px;font-family:"SF Mono",Menlo,monospace}
+.hint-text{font-size:20px;color:#fff;margin-bottom:18px;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,0.1)}
+.speak-btn{
+  padding:10px 20px;border-radius:24px;background:rgba(255,255,255,0.2);
+  border:1px solid rgba(255,255,255,0.3);color:#fff;font-size:14px;font-weight:500;
+  cursor:pointer;margin-bottom:22px;backdrop-filter:blur(8px);transition:all .2s;
+}
+.speak-btn:hover{background:rgba(255,255,255,0.3);transform:scale(1.03)}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:520px}
+.option-btn{
+  padding:18px 16px;border-radius:14px;background:var(--card-bg);
+  backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,0.5);
+  color:var(--text);font-size:16px;font-weight:500;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;
+  box-shadow:0 2px 12px rgba(15,23,42,0.08);
+}
+.option-btn:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(6,182,212,0.2)}
+.option-btn.correct{background:rgba(16,185,129,0.15);border-color:var(--good);color:var(--good);box-shadow:0 4px 16px rgba(16,185,129,0.25)}
+.option-btn.wrong{background:rgba(239,68,68,0.12);border-color:var(--bad);color:var(--bad);box-shadow:0 4px 16px rgba(239,68,68,0.2)}
+.input-area{width:100%;max-width:420px;margin-bottom:18px}
+.quiz-input{
+  width:100%;padding:18px;border-radius:14px;background:var(--card-bg);
+  backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,0.5);
+  color:var(--text);font-size:18px;text-align:center;outline:none;
+  transition:all .25s;box-shadow:0 2px 12px rgba(15,23,42,0.08);
+}
+.quiz-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(6,182,212,0.15),0 2px 12px rgba(15,23,42,0.08)}
+.quiz-input.correct{border-color:var(--good);box-shadow:0 0 0 4px rgba(16,185,129,0.15)}
+.quiz-input.wrong{border-color:var(--bad);box-shadow:0 0 0 4px rgba(239,68,68,0.15)}
+.feedback{font-size:22px;font-weight:700;margin-top:18px;min-height:32px;text-shadow:0 1px 8px rgba(0,0,0,0.1)}
+.feedback.good{color:#6ee7b7}
+.feedback.bad{color:#fca5a5}
+.feedback.timeout{color:#fcd34d}
+.result-screen{text-align:center}
+.result-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:24px 0}
+.stat-card{padding:22px 16px;animation:popIn .4s ease}
+.stat-card .num{font-size:34px;font-weight:800;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-card .label{font-size:13px;color:var(--text2);margin-top:6px;font-weight:500}
+.wrong-list{text-align:left;max-height:320px;overflow-y:auto;margin:20px 0}
+.wrong-item{padding:14px 16px;margin-bottom:8px;border-radius:12px;background:rgba(255,255,255,0.7);border:1px solid rgba(239,68,68,0.15);font-size:14px}
+.wrong-item .en{font-weight:700;color:var(--text);font-size:15px}
+.wrong-item .your{color:var(--bad);margin-left:8px;font-weight:500}
+.wrong-item .correct-a{color:var(--good);margin-left:8px;font-weight:500}
+.leaderboard-item{display:flex;align-items:center;padding:16px;margin-bottom:10px;border-radius:14px;background:var(--card-bg);border:1px solid rgba(255,255,255,0.5);box-shadow:0 2px 12px rgba(15,23,42,0.06)}
+.rank{width:34px;font-weight:800;font-size:17px;color:var(--accent);text-align:center}
+.lb-info{flex:1;margin-left:12px}
+.lb-name{font-weight:600;font-size:15px;color:var(--text)}
+.lb-detail{font-size:12px;color:var(--text2);margin-top:2px}
+.switch-tabs{display:flex;gap:8px;margin-bottom:20px;padding:4px;background:rgba(255,255,255,0.15);border-radius:12px;backdrop-filter:blur(8px)}
+.tab{flex:1;padding:10px;text-align:center;border-radius:9px;cursor:pointer;font-size:14px;font-weight:500;color:rgba(241,245,249,0.8);transition:all .25s}
+.tab.active{background:#fff;color:var(--accent);font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.read-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;margin-bottom:8px;border-radius:12px;
+  background:var(--card-bg);border:1px solid rgba(255,255,255,0.5);
+  cursor:pointer;transition:all .25s;box-shadow:0 1px 8px rgba(15,23,42,0.05);
+}
+.read-item:hover{transform:translateX(3px);border-color:rgba(6,182,212,0.3);box-shadow:0 4px 16px rgba(6,182,212,0.12)}
+.read-item .en{font-weight:700;font-size:16px;color:var(--text)}
+.read-item .ph{font-size:12px;color:var(--text2);margin-top:2px;font-family:"SF Mono",Menlo,monospace}
+.read-item .cn{font-size:14px;color:var(--text2);font-weight:500}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:fadeIn .2s ease}
+.modal{width:100%;max-width:500px;padding:28px;max-height:85vh;overflow-y:auto;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)}
+.wd-section{
+  text-align:left;margin-bottom:14px;
+  background:rgba(6,182,212,0.05);
+  border:1px solid rgba(6,182,212,0.15);
+  border-radius:14px;padding:16px 18px;
+}
+.wd-section-title{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px}
+.wd-trans-item{display:flex;gap:10px;padding:7px 0;font-size:15px;line-height:1.6;border-bottom:1px solid rgba(15,23,42,0.06)}
+.wd-trans-item:last-child{border-bottom:none}
+.wd-pos{display:inline-block;min-width:42px;color:var(--accent2);font-style:italic;font-weight:700;flex-shrink:0;font-size:13px;background:rgba(59,130,246,0.08);padding:2px 8px;border-radius:6px;text-align:center}
+.wd-phrase-item{padding:8px 0;font-size:14px;line-height:1.5;border-bottom:1px solid rgba(15,23,42,0.06)}
+.wd-phrase-item:last-child{border-bottom:none}
+.wd-phrase-en{color:var(--text);font-weight:600}
+.wd-phrase-cn{color:var(--text2);margin-left:8px}
+.wd-infl-item{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;border-bottom:1px solid rgba(15,23,42,0.06)}
+.wd-infl-item:last-child{border-bottom:none}
+.wd-infl-type{display:inline-block;min-width:48px;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#8b5cf6,#6366f1);padding:3px 8px;border-radius:6px;text-align:center;flex-shrink:0}
+.wd-infl-word{font-weight:700;color:var(--text);min-width:100px;flex-shrink:0}
+.wd-infl-cn{color:var(--text2);font-size:13px}
+.modal h3{margin-bottom:16px;font-size:18px;color:var(--text)}
+.modal input{width:100%;padding:14px;border-radius:12px;background:rgba(15,23,42,0.04);border:2px solid rgba(15,23,42,0.1);color:var(--text);font-size:16px;margin-bottom:16px;outline:none;transition:border .2s}
+.modal input:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:10px;margin-top:8px}
+.modal-actions .btn{flex:1}
+.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.back-btn{background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:8px 14px;border-radius:10px;font-weight:600;transition:all .2s;background:rgba(255,255,255,0.15)}
+.back-btn:hover{background:rgba(255,255,255,0.25)}
+.empty{text-align:center;padding:48px 20px;color:rgba(241,245,249,0.7);font-size:15px}
+.home-buttons{display:flex;flex-direction:column;gap:16px;margin-top:32px;max-width:420px;width:100%}
+.home-btn{
+  display:flex;align-items:center;gap:16px;padding:22px 24px;border-radius:20px;
+  background:var(--card-bg);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);
+  cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);box-shadow:0 4px 20px rgba(15,23,42,0.1);
+  text-align:left;
+}
+.home-btn:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 12px 32px rgba(6,182,212,0.25);border-color:rgba(6,182,212,0.4)}
+.home-btn:active{transform:scale(0.98)}
+.home-btn .icon{font-size:32px;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(135deg,rgba(6,182,212,0.12),rgba(139,92,246,0.12));flex-shrink:0}
+.home-btn .text{flex:1}
+.home-btn .title{font-size:19px;font-weight:700;color:var(--text);margin-bottom:2px}
+.home-btn .desc{font-size:13px;color:var(--text2)}
+.book-item,.unit-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;margin-bottom:10px;border-radius:16px;
+  background:var(--card-bg);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.5);
+  cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 2px 12px rgba(15,23,42,0.06);
+}
+.book-item:hover,.unit-item:hover{transform:translateX(4px);box-shadow:0 6px 20px rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.3)}
+.book-item .name,.unit-item .name{font-size:17px;font-weight:600;color:var(--text)}
+.book-item .meta,.unit-item .meta{font-size:12px;color:var(--text2);margin-top:3px}
+.book-item .arrow,.unit-item .arrow{font-size:20px;color:var(--accent);font-weight:700}
+.book-item.bk0{background:linear-gradient(135deg,rgba(14,165,233,0.72),rgba(99,102,241,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(14,165,233,0.2)}
+.book-item.bk1{background:linear-gradient(135deg,rgba(16,185,129,0.72),rgba(6,182,212,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(16,185,129,0.2)}
+.book-item.bk2{background:linear-gradient(135deg,rgba(245,158,11,0.72),rgba(239,68,68,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(245,158,11,0.2)}
+.book-item.bk3{background:linear-gradient(135deg,rgba(236,72,153,0.72),rgba(139,92,246,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(236,72,153,0.2)}
+.book-item.bk4{background:linear-gradient(135deg,rgba(59,130,246,0.72),rgba(14,165,233,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(59,130,246,0.2)}
+.book-item.bk5{background:linear-gradient(135deg,rgba(139,92,246,0.72),rgba(236,72,153,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(139,92,246,0.2)}
+.book-item.bk6{background:linear-gradient(135deg,rgba(6,182,212,0.72),rgba(16,185,129,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(6,182,212,0.2)}
+.book-item.bk7{background:linear-gradient(135deg,rgba(239,68,68,0.72),rgba(245,158,11,0.62));border-color:rgba(255,255,255,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 2px 12px rgba(239,68,68,0.2)}
+.book-item.bk0 .arrow{color:#fff}.book-item.bk1 .arrow{color:#fff}.book-item.bk2 .arrow{color:#fff}.book-item.bk3 .arrow{color:#fff}
+.book-item.bk4 .arrow{color:#fff}.book-item.bk5 .arrow{color:#fff}.book-item.bk6 .arrow{color:#fff}.book-item.bk7 .arrow{color:#fff}
+.book-item.bk0 .name,.book-item.bk1 .name,.book-item.bk2 .name,.book-item.bk3 .name,
+.book-item.bk4 .name,.book-item.bk5 .name,.book-item.bk6 .name,.book-item.bk7 .name{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.25)}
+.book-item.bk0 .meta,.book-item.bk1 .meta,.book-item.bk2 .meta,.book-item.bk3 .meta,
+.book-item.bk4 .meta,.book-item.bk5 .meta,.book-item.bk6 .meta,.book-item.bk7 .meta{color:rgba(255,255,255,0.85)}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.9);color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:9999;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@media(max-width:480px){.options{grid-template-columns:1fr}.word-display{font-size:32px}.result-stats{grid-template-columns:1fr 1fr 1fr}.stat-card{padding:16px 8px}.stat-card .num{font-size:26px}}
+
+/* ===== 网页内置英文键盘（防止手机输入法联想/弹窗） ===== */
+.vk-wrap{
+  position:fixed;left:0;right:0;bottom:0;z-index:999;
+  background:rgba(20,40,70,0.92);backdrop-filter:blur(20px);
+  padding:10px 6px calc(10px + env(safe-area-inset-bottom,0));
+  box-shadow:0 -4px 24px rgba(0,0,0,0.3);
+  transform:translateY(110%);transition:transform .3s ease;
+  user-select:none;-webkit-user-select:none;
+}
+.vk-wrap.show{transform:translateY(0);}
+.vk-row{display:flex;justify-content:center;gap:5px;margin-bottom:6px;}
+.vk-key{
+  flex:1;min-width:0;height:44px;max-width:52px;
+  border:none;border-radius:8px;
+  background:rgba(255,255,255,0.92);color:#1e3a5f;
+  font-size:17px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 0 rgba(0,0,0,0.25);
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .05s,background .1s;
+}
+.vk-key:active{background:#a8d8ff;transform:translateY(2px);box-shadow:none;}
+.vk-key.wide{max-width:72px;font-size:16px;background:rgba(255,255,255,0.75);}
+.vk-key.space{max-width:100%;flex:4;}
+.vk-key.enter{flex:1.6;max-width:110px;background:#34d399;color:#fff;font-size:15px;}
+.vk-key.enter:active{background:#10b981;}
+.vk-key.del{color:#ef4444;}
+.vk-hint{display:flex;justify-content:space-between;align-items:center;padding:0 8px 6px;color:rgba(255,255,255,0.7);font-size:12px;}
+.vk-hint button{background:none;border:none;color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;}
+.quiz-input.readonly-input{cursor:pointer;}
+body.vk-open #app{padding-bottom:290px;}
+@media(min-width:768px){
+  .vk-wrap{left:50%;right:auto;width:640px;transform:translateX(-50%) translateY(110%);}
+  .vk-wrap.show{transform:translateX(-50%) translateY(0);}
+}
+/* ===== 题数选择弹窗（替代手机不支持的 prompt） ===== */
+.count-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
+.count-preset{padding:14px 0;border-radius:12px;border:2px solid rgba(255,255,255,0.45);background:rgba(255,255,255,0.75);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.count-preset:active{transform:scale(.95)}
+.count-preset.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 14px rgba(6,182,212,.35)}
+#customCount{text-align:center}
+#customCount::-webkit-outer-spin-button,#customCount::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="user-bar">
+    <div class="user-info" onclick="openUserModal()">
+      <div class="avatar" id="userAvatar">?</div>
+      <div><div class="user-name" id="userName">未选择</div><div class="user-stats" id="userStats">点击选择用户</div></div>
+    </div>
+    <button class="btn btn-sm btn-ghost" onclick="showScreen('home')">首页</button>
+  </div>
+  <div class="screen active" id="home"></div>
+  <div class="screen" id="bookSelect"></div>
+  <div class="screen" id="unitSelect"></div>
+  <div class="screen" id="quiz"></div>
+  <div class="screen" id="result"></div>
+  <div class="screen" id="leaderboard"></div>
+  <div class="screen" id="reader"></div>
+</div>
+
+<div class="modal-overlay" id="countModal" style="display:none">
+  <div class="modal glass">
+    <h3>选择测试题数</h3>
+    <p id="countModalInfo" style="text-align:center;color:var(--text-soft);margin:8px 0 18px"></p>
+    <div class="count-presets">
+      <button type="button" class="count-preset" onclick="selectCount(this,5)">5 题</button>
+      <button type="button" class="count-preset active" onclick="selectCount(this,10)">10 题</button>
+      <button type="button" class="count-preset" onclick="selectCount(this,20)">20 题</button>
+      <button type="button" class="count-preset" onclick="selectCount(this,'all')">全部</button>
+    </div>
+    <input id="customCount" type="number" inputmode="numeric" placeholder="或输入自定义题数" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn" onclick="confirmCount()">开始测试</button>
+      <button class="btn btn-ghost" onclick="closeCountModal()">取消</button>
+    </div>
+  </div>
+</div>
+<div class="vk-wrap" id="vkWrap">
+  <div class="vk-hint">
+    <span>⌨️ 内置键盘（避免手机联想）</span>
+    <button onclick="hideVK()">收起 ▼</button>
+  </div>
+  <div class="vk-row" id="vkRow0"></div>
+  <div class="vk-row" id="vkRow1"></div>
+  <div class="vk-row" id="vkRow2"></div>
+  <div class="vk-row" id="vkRow3"></div>
+</div>
+
+<div class="modal-overlay" id="userModal" style="display:none">
+  <div class="modal glass">
+    <h3>选择/添加用户</h3>
+    <div id="userList"></div>
+    <input id="newUserName" placeholder="新用户名" autocomplete="off" autocapitalize="off">
+    <div class="modal-actions"><button class="btn" onclick="addUser()">添加</button><button class="btn btn-ghost" onclick="closeUserModal()">取消</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="wordDetailModal" style="display:none">
+  <div class="modal glass" style="text-align:center">
+    <div style="font-size:30px;font-weight:700;margin-bottom:4px" id="wdEn"></div>
+    <div style="color:var(--text2);font-size:15px;margin-bottom:12px" id="wdPh"></div>
+    <div id="wdBody"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="speak(document.getElementById('wdEn').textContent)">🔊 再听一遍</button>
+      <button class="btn btn-ghost" onclick="closeWordDetail()">关闭</button>
+    </div>
+  </div>
+</div>
+<script>
+/*WORD_DATA_PLACEHOLDER*/
+/*DEEPSEEK_DATA_PLACEHOLDER*/
+
+const STORE_KEY='vocab_quiz_data';
+let currentUser=null;
+let quizState=null;
+let navMode='quiz';
+let selectedTi=0;
+
+// ===== 网页内置英文键盘（防止手机输入法联想） =====
+var vkRows=[['q','w','e','r','t','y','u','i','o','p'],
+            ['a','s','d','f','g','h','j','k','l'],
+            ['del','z','x','c','v','b','n','m'],
+            ['space','enter']];
+var vkActive=false;
+function buildVK(){
+  for(var r=0;r<4;r++){
+    var row=document.getElementById('vkRow'+r);
+    if(!row||row.childNodes.length)continue;
+    row.innerHTML='';
+    vkRows[r].forEach(function(k){
+      var btn=document.createElement('button');
+      btn.className='vk-key';
+      if(k==='del'){btn.classList.add('wide','del');btn.textContent='⌫';}
+      else if(k==='space'){btn.classList.add('space');btn.textContent='空格';}
+      else if(k==='enter'){btn.classList.add('enter');btn.textContent='✓ 确认';}
+      else btn.textContent=k.toUpperCase();
+      btn.onmousedown=function(e){e.preventDefault();};
+      btn.onclick=function(e){e.preventDefault();vkPress(k);};
+      row.appendChild(btn);
+    });
+  }
+}
+function vkPress(k){
+  var input=document.getElementById('ansInput');
+  if(!input||input.disabled)return;
+  if(k==='del'){input.value=input.value.slice(0,-1);}
+  else if(k==='space'){input.value+=' ';}
+  else if(k==='enter'){
+    var btn=document.querySelector('#quiz .quiz-body .btn');
+    if(btn)btn.click();
+    return;
+  }else{input.value+=k;}
+  input.classList.remove('correct','wrong');
+}
+function showVK(){
+  buildVK();
+  document.getElementById('vkWrap').classList.add('show');
+  document.body.classList.add('vk-open');
+  vkActive=true;
+}
+function hideVK(){
+  var w=document.getElementById('vkWrap');
+  if(w)w.classList.remove('show');
+  document.body.classList.remove('vk-open');
+  vkActive=false;
+}
+// ===== 题数选择弹窗（替代手机不支持的 prompt） =====
+var countCtx={ti:0,li:0,total:0,count:10};
+
+
+function loadData(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'{"users":{}}')}catch(e){return{users:{}}}}
+function saveData(d){localStorage.setItem(STORE_KEY,JSON.stringify(d))}
+let DB=loadData();
+
+function speak(text,lang){
+  lang=lang||'en-US';
+  try{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=lang;u.rate=0.78;u.pitch=0.95;
+    const voices=speechSynthesis.getVoices();
+    const usVoice=voices.find(v=>v.lang.startsWith('en-US')&&(v.name.includes('Google')||v.name.includes('Samantha')||v.name.includes('Natural')));
+    if(usVoice)u.voice=usVoice;
+    speechSynthesis.cancel();speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function showScreen(id){
+  hideVK();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function getAllLessons(){
+  let list=[];
+  WORD_DATA.themes.forEach((theme,ti)=>{
+    theme.lessons.forEach((lesson,li)=>{
+      const total=lesson.words.length+lesson.phrases.length;
+      list.push({ti,li,name:lesson.name,words:lesson.words.length,phrases:lesson.phrases.length,total});
+    });
+  });
+  return list;
+}
+
+function renderHome(){
+  hideVK();
+  const el=document.getElementById('home');
+  let html='<div style="text-align:center;margin-top:20px"><h1 style="font-size:36px">Vocab Quiz</h1><p class="subtitle" style="color:rgba(241,245,249,0.8);font-size:15px">高中英语单词测试</p></div>';
+  if(currentUser)html+=`<div style="text-align:center;margin-bottom:8px;font-size:14px;color:rgba(241,245,249,0.8)">当前用户: <b style="color:#fff">${currentUser.name}</b> | 总分: ${currentUser.totalScore||0} | 正确率: ${(currentUser.accuracy||0).toFixed(1)}%</div>`;
+  html+='<div class="home-buttons" style="margin:24px auto 0">';
+  html+=`<div class="home-btn" onclick="navMode='quiz';showBookSelect()">
+    <div class="icon">📝</div><div class="text"><div class="title">单词默写</div><div class="desc">选择书和单元，开始测试</div></div><div class="arrow">›</div></div>`;
+  html+=`<div class="home-btn" onclick="navMode='reader';showBookSelect()">
+    <div class="icon">📖</div><div class="text"><div class="title">词汇表</div><div class="desc">浏览单词、发音和详细释义</div></div><div class="arrow">›</div></div>`;
+  html+=`<div class="home-btn" onclick="showLeaderboard()">
+    <div class="icon">🏆</div><div class="text"><div class="title">排行榜</div><div class="desc">查看用户成绩排名</div></div><div class="arrow">›</div></div>`;
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function showBookSelect(){
+  const el=document.getElementById('bookSelect');
+  const title=navMode==='quiz'?'选择课本':'选择课本';
+  let html=`<div class="header-row"><button class="back-btn" onclick="renderHome();showScreen('home')">← 返回</button><h2 style="color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.15)">${title}</h2></div>`;
+  WORD_DATA.themes.forEach((theme,ti)=>{
+    const unitCount=theme.lessons.length;
+    const totalWords=theme.lessons.reduce((s,l)=>s+l.words.length+l.phrases.length,0);
+    html+=`<div class="book-item bk${ti}" onclick="selectedTi=${ti};showUnitSelect()">
+      <div><div class="name">${theme.name}</div><div class="meta">${unitCount}个单元 · 共${totalWords}个词条</div></div>
+      <div class="arrow">›</div></div>`;
+  });
+  el.innerHTML=html;
+  showScreen('bookSelect');
+}
+
+function showUnitSelect(){
+  const el=document.getElementById('unitSelect');
+  const theme=WORD_DATA.themes[selectedTi];
+  const title=navMode==='quiz'?'选择单元':'选择单元';
+  let html=`<div class="header-row"><button class="back-btn" onclick="showBookSelect()">← 返回</button><h2 style="color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.15)">${theme.name}</h2></div>`;
+  theme.lessons.forEach((lesson,li)=>{
+    const total=lesson.words.length+lesson.phrases.length;
+    const score=getLessonScore(selectedTi,li);
+    const isEmpty=total<2;
+    html+=`<div class="unit-item" style="${isEmpty?'opacity:0.55;cursor:not-allowed':''}" onclick="${isEmpty?`showToast('该单元词库待更新')`:(navMode==='quiz'?`askQuestionCount(${selectedTi},${li},${total})`:`showReader(${selectedTi},${li})`)}">
+      <div><div class="name">${lesson.name}${isEmpty?' <span style="font-size:11px;background:rgba(148,163,184,0.2);color:#94a3b8;padding:2px 8px;border-radius:10px;margin-left:6px">待更新</span>':''}</div><div class="meta">${isEmpty?'词库整理中…':lesson.words.length+'词 + '+lesson.phrases.length+'短语（共'+total+'个）'}</div></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${navMode==='quiz'&&score?`<span style="font-size:13px;color:var(--accent);font-weight:600;background:rgba(6,182,212,0.1);padding:4px 12px;border-radius:20px">最高${score}分</span>`:''}
+        ${isEmpty?'':'<div class="arrow">›</div>'}
+      </div></div>`;
+  });
+  el.innerHTML=html;
+  showScreen('unitSelect');
+}
+
+function askQuestionCount(ti,li,total){
+  if(!currentUser){showToast('请先选择用户');openUserModal();return}
+  if(total<2){showToast('词条太少，无法测试');return}
+  countCtx={ti:ti,li:li,total:total,count:10};
+  document.getElementById('countModalInfo').textContent='该单元共 '+total+' 个词条';
+  document.getElementById('customCount').value='';
+  document.querySelectorAll('#countModal .count-preset').forEach(function(b){b.classList.toggle('active',b.textContent.indexOf('10')!==-1)});
+  document.getElementById('countModal').style.display='flex';
+}
+function selectCount(btn,n){
+  countCtx.count=(n==='all')?countCtx.total:parseInt(n);
+  document.getElementById('customCount').value='';
+  document.querySelectorAll('#countModal .count-preset').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+}
+function confirmCount(){
+  var custom=document.getElementById('customCount').value.trim();
+  var count;
+  if(custom){
+    count=parseInt(custom);
+    if(isNaN(count)||count<1){showToast('请输入有效数字');return}
+  }else{
+    count=countCtx.count;
+  }
+  count=Math.min(count,countCtx.total);
+  closeCountModal();
+  startQuiz(countCtx.ti,countCtx.li,count);
+}
+function closeCountModal(){
+  document.getElementById('countModal').style.display='none';
+}
+
+function getLessonScore(ti,li){
+  if(!currentUser||!currentUser.quizRecords)return 0;
+  const key='t'+ti+'l'+li;
+  return currentUser.quizRecords[key]?.bestScore||0;
+}
+
+function getEntries(ti,li){
+  const theme=WORD_DATA.themes[ti];
+  const lesson=theme.lessons[li];
+  let entries=[];
+  lesson.words.forEach(w=>entries.push({en:w.en,cn:w.cn,ph:w.ph||'',isPhrase:false}));
+  lesson.phrases.forEach(p=>entries.push({en:p.en,cn:p.cn,ph:'',isPhrase:true}));
+  return entries;
+}
+
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function showToast(msg){
+  const old=document.querySelector('.toast');if(old)old.remove();
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),2000);
+}
+
+function startQuiz(ti,li,qCount){
+  const entries=getEntries(ti,li);
+  if(entries.length<2){showToast('词条太少，无法测试');return}
+  qCount=Math.min(qCount||10,entries.length);
+  const selected=shuffle(entries).slice(0,qCount);
+  const types=['en2mc','mc2en','en2input','input2en','fillblank'].filter(t=>{
+    if(t==='fillblank')return!selected.every(e=>e.isPhrase);
+    return true;
+  });
+  quizState={questions:selected.map(e=>({...e,type:types[Math.floor(Math.random()*types.length)]})),idx:0,score:0,combo:0,maxCombo:0,wrongList:[],timer:null,timeLeft:30,ti,li};
+  renderQuiz();
+  showScreen('quiz');
+}
+
+function renderQuiz(){
+  const q=quizState.questions[quizState.idx];
+  const total=quizState.questions.length;
+  const el=document.getElementById('quiz');
+  const typeLabels={en2mc:'英译中 · 选择题',mc2en:'中译英 · 选择题',en2input:'英译中 · 输入题',input2en:'中译英 · 输入题',fillblank:'填空补全'};
+  let header=`<div class="quiz-header">
+    <div class="score-display">${quizState.idx+1}/${total} | <b>${quizState.score}</b>分 | 🔥${quizState.combo}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${(quizState.idx/total)*100}%"></div></div>
+    <div class="timer" id="timer">30</div>
+  </div>
+  <div style="text-align:center;margin-bottom:12px"><span style="display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(6,182,212,0.15);color:#06b6d4;font-size:13px;font-weight:600;letter-spacing:1px">${typeLabels[q.type]||q.type}</span></div>`;
+  let body='';
+  if(q.type==='en2mc'){
+    const opts=shuffle([q.cn,...getDistractors(q.cn,q.isPhrase)]).slice(0,4);
+    body=`<div class="quiz-body">
+      <div class="word-display" onclick="speak('${q.en.replace(/'/g,"\\'")}')">${q.en}</div>
+      ${q.ph?`<div class="phonetic">${q.ph}</div>`:''}
+      <button class="speak-btn" onclick="speak('${q.en.replace(/'/g,"\\'")}')">🔊 发音</button>
+      <div class="options">${opts.map(o=>`<button class="option-btn" onclick="answerMC(this,'${o.replace(/'/g,"\\'")}',${JSON.stringify(q.cn).replace(/"/g,'&quot;')})">${o}</button>`).join('')}</div>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+  }else if(q.type==='mc2en'){
+    const opts=shuffle([q.en,...getDistractorsEN(q.en)]).slice(0,4);
+    body=`<div class="quiz-body">
+      <div class="hint-text">${q.cn}</div>
+      <button class="speak-btn" onclick="speak('${q.en.replace(/'/g,"\\'")}')">🔊 听发音</button>
+      <div class="options">${opts.map(o=>`<button class="option-btn" onclick="answerMC_en(this,'${o.replace(/'/g,"\\'")}','${q.en.replace(/'/g,"\\'")}')">${o}</button>`).join('')}</div>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+  }else if(q.type==='en2input'){
+    body=`<div class="quiz-body">
+      <div class="word-display" onclick="speak('${q.en.replace(/'/g,"\\'")}')">${q.en}</div>
+      ${q.ph?`<div class="phonetic">${q.ph}</div>`:''}
+      <button class="speak-btn" onclick="speak('${q.en.replace(/'/g,"\\'")}')">🔊 发音</button>
+      <div class="input-area"><input class="quiz-input" id="ansInput" placeholder="输入中文意思" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
+      <button class="btn" onclick="answerInput('${q.cn.replace(/'/g,"\\'")}')">确认</button>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+  }else if(q.type==='input2en'){
+    body=`<div class="quiz-body">
+      <div class="hint-text">${q.cn}</div>
+      <button class="speak-btn" onclick="speak('${q.en.replace(/'/g,"\\'")}')">🔊 听发音</button>
+      <div class="input-area"><input class="quiz-input readonly-input" id="ansInput" placeholder="点击此处，用下方键盘输入" readonly autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none"></div>
+      <button class="btn" onclick="answerInputEN('${q.en.replace(/'/g,"\\'")}')">确认</button>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+  }else{
+    const masked=maskWord(q.en);
+    body=`<div class="quiz-body">
+      <div class="hint-text">${q.cn}</div>
+      <div style="font-size:24px;letter-spacing:4px;margin-bottom:20px;font-family:monospace">${masked}</div>
+      <div class="input-area"><input class="quiz-input readonly-input" id="ansInput" placeholder="点击此处，用下方键盘补全" readonly autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none"></div>
+      <button class="btn" onclick="answerFill('${q.en.replace(/'/g,"\\'")}')">确认</button>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+  }
+  el.innerHTML=header+body;
+  speak(q.en);
+  startTimer();
+  const input=document.getElementById('ansInput');
+  // 英文输入题（中译英/填空）：内置键盘，不调用手机系统键盘（避免联想）
+  // 英译中输入题：保留系统中文输入法
+  if(q.type==='input2en'||q.type==='fillblank'){
+    showVK();
+    if(input)input.addEventListener('click',function(){showVK();});
+  }else{
+    hideVK();
+    if(input){
+      input.addEventListener('keydown',e=>{if(e.key==='Enter')e.target.closest('.quiz-body').querySelector('.btn').click()});
+      setTimeout(function(){input.focus();},100);
+    }
+  }
+}
+
+function maskWord(w){
+  if(w.length<4)return w;
+  const keep=Math.max(1,Math.floor(w.length*0.3));
+  let masked='';
+  for(let i=0;i<w.length;i++){
+    if(i<keep||i>=w.length-keep||w[i]===' ')masked+=w[i];
+    else masked+='_';
+  }
+  return masked;
+}
+
+function getDistractors(cn,isPhrase){
+  const all=[];
+  WORD_DATA.themes.forEach(t=>t.lessons.forEach(l=>{
+    l.words.forEach(w=>all.push(w.cn));
+    l.phrases.forEach(p=>all.push(p.cn));
+  }));
+  return shuffle(all.filter(c=>c!==cn&&!cn.includes(c)&&!c.includes(cn))).slice(0,3);
+}
+function getDistractorsEN(en){
+  const all=[];
+  WORD_DATA.themes.forEach(t=>t.lessons.forEach(l=>{
+    l.words.forEach(w=>all.push(w.en));
+    l.phrases.forEach(p=>all.push(p.en));
+  }));
+  return shuffle(all.filter(e=>e!==en)).slice(0,3);
+}
+
+function checkCNMatch(ans,correct,word){
+  ans=ans.trim();correct=correct.trim();
+  if(!ans)return false;
+  if(ans===correct)return true;
+  // 收集所有可接受的释义：标准答案分号拆分 + DeepSeek多词性释义
+  const accepted=new Set();
+  correct.split(/[；;,，、\/]+/).forEach(p=>{if(p.trim())accepted.add(p.trim())});
+  if(word&&DEEPSEEK_DATA[word.toLowerCase()]){
+    const ds=DEEPSEEK_DATA[word.toLowerCase()];
+    if(ds.translations)ds.translations.forEach(t=>{
+      if(t.translation)t.translation.split(/[；;,，、\/]+/).forEach(p=>{if(p.trim())accepted.add(p.trim())});
+    });
+  }
+  // 精确匹配任一释义
+  for(const a of accepted){if(ans===a)return true;}
+  // 包含匹配：用户答案是某释义的子串，或某释义是用户答案的子串（长度>=2才生效）
+  if(ans.length>=2){
+    for(const a of accepted){if(a.length>=2&&(a.includes(ans)||ans.includes(a)))return true;}
+  }
+  return false;
+}
+
+function answerMC(btn,selected,correct){
+  clearInterval(quizState.timer);
+  document.querySelectorAll('.option-btn').forEach(b=>b.style.pointerEvents='none');
+  const ok=checkCNMatch(selected,correct,quizState.questions[quizState.idx].en);
+  btn.classList.add(ok?'correct':'wrong');
+  if(!ok)document.querySelectorAll('.option-btn').forEach(b=>{if(checkCNMatch(b.textContent,correct,quizState.questions[quizState.idx].en))b.classList.add('correct')});
+  showFeedback(ok);
+  setTimeout(nextQuestion,700);
+}
+function answerMC_en(btn,selected,correct){
+  clearInterval(quizState.timer);
+  document.querySelectorAll('.option-btn').forEach(b=>b.style.pointerEvents='none');
+  const ok=selected.toLowerCase()===correct.toLowerCase();
+  btn.classList.add(ok?'correct':'wrong');
+  if(!ok)document.querySelectorAll('.option-btn').forEach(b=>{if(b.textContent===correct)b.classList.add('correct')});
+  showFeedback(ok);
+  setTimeout(nextQuestion,700);
+}
+function answerInput(correct){
+  clearInterval(quizState.timer);
+  const input=document.getElementById('ansInput');
+  const ans=input.value.trim();
+  const word=quizState.questions[quizState.idx].en;
+  const ok=checkCNMatch(ans,correct,word);
+  input.classList.add(ok?'correct':'wrong');
+  input.disabled=true;
+  showFeedback(ok);
+  if(!ok)quizState.wrongList.push({en:word,your:ans,correct:correct,type:'en2cn'});
+  setTimeout(nextQuestion,800);
+}
+function answerInputEN(correct){
+  clearInterval(quizState.timer);
+  const input=document.getElementById('ansInput');
+  const ans=input.value.trim().toLowerCase();
+  const ok=ans===correct.toLowerCase();
+  input.classList.add(ok?'correct':'wrong');
+  input.disabled=true;
+  showFeedback(ok);
+  if(!ok)quizState.wrongList.push({en:correct,your:input.value.trim(),correct:correct,type:'cn2en'});
+  setTimeout(nextQuestion,800);
+}
+function answerFill(correct){
+  clearInterval(quizState.timer);
+  const input=document.getElementById('ansInput');
+  const ans=input.value.trim().toLowerCase().replace(/\s+/g,'');
+  const ok=ans===correct.toLowerCase().replace(/\s+/g,'');
+  input.classList.add(ok?'correct':'wrong');
+  input.disabled=true;
+  showFeedback(ok);
+  if(!ok)quizState.wrongList.push({en:correct,your:input.value.trim(),correct:correct,type:'fill'});
+  setTimeout(nextQuestion,800);
+}
+
+function showFeedback(ok){
+  const fb=document.getElementById('fb');
+  if(ok){quizState.score++;quizState.combo++;quizState.maxCombo=Math.max(quizState.maxCombo,quizState.combo);fb.className='feedback good';fb.textContent='✅ 回答正确！'+(quizState.combo>1?' 🔥'+quizState.combo+'连击':'')}
+  else{quizState.combo=0;fb.className='feedback bad';fb.textContent='❌ 回答错误'}
+}
+
+function startTimer(){
+  quizState.timeLeft=30;
+  const t=document.getElementById('timer');
+  t.textContent='30';t.className='timer';
+  quizState.timer=setInterval(()=>{
+    quizState.timeLeft--;
+    t.textContent=quizState.timeLeft;
+    if(quizState.timeLeft<=5)t.classList.add('warn');
+    if(quizState.timeLeft<=0){
+      clearInterval(quizState.timer);
+      const fb=document.getElementById('fb');
+      fb.className='feedback timeout';fb.textContent='⏰ 时间到！';
+      quizState.combo=0;
+      const q=quizState.questions[quizState.idx];
+      quizState.wrongList.push({en:q.en,your:'超时未答',correct:q.cn,type:'timeout'});
+      setTimeout(nextQuestion,1200);
+    }
+  },1000);
+}
+
+function nextQuestion(){
+  quizState.idx++;
+  if(quizState.idx>=quizState.questions.length)showResult();
+  else renderQuiz();
+}
+
+function showResult(){
+  hideVK();
+  clearInterval(quizState.timer);
+  const total=quizState.questions.length;
+  const correct=quizState.score;
+  const acc=((correct/total)*100).toFixed(1);
+  const el=document.getElementById('result');
+  let html=`<h1>测试完成</h1><div class="result-stats">
+    <div class="stat-card glass"><div class="num">${correct}/${total}</div><div class="label">答对题数</div></div>
+    <div class="stat-card glass"><div class="num">${acc}%</div><div class="label">正确率</div></div>
+    <div class="stat-card glass"><div class="num">${quizState.maxCombo}</div><div class="label">最高连击</div></div>
+  </div>`;
+  if(quizState.wrongList.length>0){
+    html+=`<h2 style="color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.15)">错题回顾</h2><div class="wrong-list">`;
+    quizState.wrongList.forEach(w=>{
+      html+=`<div class="wrong-item"><span class="en">${w.en}</span><br>你的答案: <span class="your">${w.your}</span> | 正确: <span class="correct-a">${w.correct}</span></div>`;
+    });
+    html+=`</div>`;
+  }else{
+    html+=`<div class="empty">🎉 全对！太棒了！</div>`;
+  }
+  html+=`<div style="display:flex;gap:10px;margin-top:20px"><button class="btn" onclick="showScreen('home')">返回首页</button><button class="btn btn-ghost" onclick="retryQuiz()">再来一次</button></div>`;
+  el.innerHTML=html;
+  showScreen('result');
+  saveResult(correct,total,quizState.maxCombo);
+}
+
+function retryQuiz(){
+  startQuiz(quizState.ti,quizState.li,quizState.questions.length);
+}
+
+function saveResult(correct,total,maxCombo){
+  if(!currentUser)return;
+  const uid=currentUser.id;
+  if(!DB.users[uid])DB.users[uid]={name:currentUser.name,totalScore:0,totalCorrect:0,totalQuestions:0,maxCombo:0,quizRecords:{},avatar:currentUser.avatar};
+  const u=DB.users[uid];
+  u.totalScore+=correct;u.totalCorrect+=correct;u.totalQuestions+=total;u.maxCombo=Math.max(u.maxCombo||0,maxCombo);
+  if(quizState.ti!==null){
+    const key='t'+quizState.ti+'l'+quizState.li;
+    if(!u.quizRecords[key]||correct>u.quizRecords[key].bestScore)u.quizRecords[key]={bestScore:correct};
+  }
+  saveData(DB);updateUserBar();
+}
+
+function showLeaderboard(){
+  const el=document.getElementById('leaderboard');
+  const users=Object.values(DB.users).map(u=>({...u,acc:u.totalQuestions?u.totalCorrect/u.totalQuestions*100:0}));
+  let sortBy='score';
+  let html=`<div class="header-row"><button class="back-btn" onclick="renderHome();showScreen('home')">← 返回</button><h2 style="color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.15)">🏆 排行榜</h2></div>`;
+  html+=`<div class="switch-tabs"><div class="tab active" onclick="sortLB(this,'score')">总分</div><div class="tab" onclick="sortLB(this,'acc')">正确率</div><div class="tab" onclick="sortLB(this,'combo')">最高连击</div></div>`;
+  html+='<div id="lbList"></div>';
+  el.innerHTML=html;
+  showScreen('leaderboard');
+  renderLB(users.sort((a,b)=>b.totalScore-a.totalScore));
+  window._lbUsers=users;
+}
+function sortLB(el,type){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  let sorted;
+  if(type==='score')sorted=[...window._lbUsers].sort((a,b)=>b.totalScore-a.totalScore);
+  else if(type==='acc')sorted=[...window._lbUsers].sort((a,b)=>b.acc-a.acc);
+  else sorted=[...window._lbUsers].sort((a,b)=>(b.maxCombo||0)-(a.maxCombo||0));
+  renderLB(sorted);
+}
+function renderLB(users){
+  const el=document.getElementById('lbList');
+  if(!users.length){el.innerHTML='<div class="empty">暂无数据</div>';return}
+  el.innerHTML=users.map((u,i)=>`<div class="leaderboard-item glass">
+    <div class="rank">#${i+1}</div>
+    <div class="avatar">${(u.name||'?')[0].toUpperCase()}</div>
+    <div class="lb-info"><div class="lb-name">${u.name}</div><div class="lb-detail">${u.totalScore}分 · 正确率${(u.acc||0).toFixed(1)}% · 最高${u.maxCombo||0}连击</div></div>
+  </div>`).join('');
+}
+
+function showReader(ti,li){
+  if(ti===undefined)ti=selectedTi;
+  if(li===undefined)li=0;
+  const el=document.getElementById('reader');
+  const theme=WORD_DATA.themes[ti];
+  const lesson=theme.lessons[li];
+  let html=`<div class="header-row"><button class="back-btn" onclick="showUnitSelect()">← 返回</button><h2 style="color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.15)">📖 ${lesson.name}</h2></div>`;
+  lesson.words.forEach((w,wi)=>{
+    html+=`<div class="read-item" onclick="showWordDetail('${w.en.replace(/'/g,"\\'")}','${(w.ph||'').replace(/'/g,"\\'")}','${w.cn.replace(/'/g,"\\'")}','${(w.col||'').replace(/'/g,"\\'")}')">
+      <div><div class="en">${w.en}</div><div class="ph">${w.ph||''}</div></div>
+      <div class="cn">${w.cn}</div>
+    </div>`;
+  });
+  lesson.phrases.forEach(p=>{
+    html+=`<div class="read-item" onclick="speak('${p.en.replace(/'/g,"\\'")}')">
+      <div><div class="en" style="font-size:14px">${p.en}</div></div>
+      <div class="cn">${p.cn}</div>
+    </div>`;
+  });
+  el.innerHTML=html;
+  showScreen('reader');
+}
+
+function showWordDetail(en,ph,cn,col){
+  speak(en);
+  const modal=document.getElementById('wordDetailModal');
+  document.getElementById('wdEn').textContent=en;
+  document.getElementById('wdPh').textContent=ph||'';
+  let body='';
+  const ds=(typeof DEEPSEEK_DATA!=='undefined')?DEEPSEEK_DATA[en.toLowerCase()]:null;
+  if(ds&&ds.translations&&ds.translations.length){
+    body+='<div class="wd-section"><div class="wd-section-title">📖 释义</div>';
+    ds.translations.forEach(t=>{
+      body+=`<div class="wd-trans-item"><span class="wd-pos">${t.type||''}.</span><span>${t.translation||''}</span></div>`;
+    });
+    body+='</div>';
+  }else{
+    body+=`<div style="font-size:18px;color:var(--accent);margin-bottom:14px">${cn||''}</div>`;
+  }
+  if(ds&&ds.inflections&&ds.inflections.length){
+    body+='<div class="wd-section"><div class="wd-section-title">🔄 单词变形</div>';
+    ds.inflections.forEach(inf=>{
+      body+=`<div class="wd-infl-item"><span class="wd-infl-type">${inf.type}</span><span class="wd-infl-word">${inf.word}</span><span class="wd-infl-cn">${inf.cn||''}</span></div>`;
+    });
+    body+='</div>';
+  }
+  if(ds&&ds.phrases&&ds.phrases.length){
+    const showPhrases=ds.phrases.slice(0,8);
+    body+='<div class="wd-section"><div class="wd-section-title">🔗 固定搭配</div>';
+    showPhrases.forEach(p=>{
+      body+=`<div class="wd-phrase-item"><span class="wd-phrase-en">${p.phrase}</span><span class="wd-phrase-cn">${p.translation||''}</span></div>`;
+    });
+    body+='</div>';
+  }
+  if(col){
+    body+=`<div class="wd-section"><div class="wd-section-title">💡 讲义搭配</div><div style="font-size:14px;line-height:1.6;color:var(--text)">${col}</div></div>`;
+  }
+  document.getElementById('wdBody').innerHTML=body;
+  modal.style.display='flex';
+}
+function closeWordDetail(){document.getElementById('wordDetailModal').style.display='none'}
+
+function openUserModal(){
+  const list=document.getElementById('userList');
+  const users=Object.values(DB.users);
+  list.innerHTML=users.map(u=>`<div class="lesson-item" onclick="selectUser('${u.name.replace(/'/g,"\\'")}')">
+    <div><div class="name">${u.name}</div><div style="font-size:12px;color:var(--text2)">${u.totalScore||0}分 · ${(u.totalQuestions?(u.totalCorrect/u.totalQuestions*100).toFixed(1):0)}%</div></div>
+  </div>`).join('')||'<div class="empty">暂无用户</div>';
+  document.getElementById('userModal').style.display='flex';
+}
+function closeUserModal(){document.getElementById('userModal').style.display='none'}
+function selectUser(name){
+  const u=DB.users[name];
+  if(u){currentUser={id:name,name:u.name,avatar:(u.name[0]||'?').toUpperCase()};closeUserModal();updateUserBar();renderHome();showScreen('home')}
+}
+function addUser(){
+  const inp=document.getElementById('newUserName');
+  const name=inp.value.trim();
+  if(!name)return;
+  if(!DB.users[name])DB.users[name]={name:name,totalScore:0,totalCorrect:0,totalQuestions:0,maxCombo:0,quizRecords:{}};
+  saveData(DB);inp.value='';openUserModal();
+}
+function updateUserBar(){
+  if(!currentUser)return;
+  const u=DB.users[currentUser.id];
+  document.getElementById('userAvatar').textContent=(u.name[0]||'?').toUpperCase();
+  document.getElementById('userName').textContent=u.name;
+  const acc=u.totalQuestions?(u.totalCorrect/u.totalQuestions*100).toFixed(1):0;
+  document.getElementById('userStats').textContent=`${u.totalScore}分 · 正确率${acc}%`;
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  renderHome();
+  const uNames=Object.keys(DB.users);
+  if(uNames.length)selectUser(uNames[0]);
+  // Warm up voices
+  speechSynthesis.getVoices();
+});
+</script>
+</body>
+</html>
